@@ -75,3 +75,39 @@ fn main() {
 
 ### for
 
+- 可以使用`while`或`loop`循环来完成循环，但是它们容易出错
+- 使用`for`循环更加简洁紧凑，它可以针对集合中的每一个元素来执行一些代码
+- 由于`for`循环的安全、简洁性，它在rust中的使用最频繁
+
+```rust
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+
+    // 使用while的方式遍历
+    let mut index = 0;
+    while index < 5 {  // 一旦把5写成大于5的数字，就会报错
+        println!("the value is {}", a[index]);
+        index = index + 1;
+    }
+
+    // for循环改造，这个比较类似Java中的增强for循环，或是python中的 for ... in语法
+    for element in a.iter() {
+        println!("the value is {}", element);
+    }
+}
+```
+
+#### Range
+
+- 由标准库提供
+- 指定一个开始数字和一个结束数字，`Range`可以生成它们之间的数字（不含结束）
+- `rev`方法可以反转`Range`
+
+```rust
+fn main() {
+    for i in (1..4).rev() {
+        println!("{}!", i);
+    }
+    println!("LIFIOFF!!!");
+}
+```
