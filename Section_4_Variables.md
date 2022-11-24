@@ -195,12 +195,54 @@ let z: char = 'ℤ'; // with explicit type annotation
 let heart_eyed_cat = '😻';
 ```
 
-
 ### 复合类型
 
+rust提供了两种基础的复合类型：元组（Tuple）和数组
 
+#### Tuple
 
+- Tuple可以将多个类型的多个值放在一个类型里
+- Tuple的长度是固定的，一旦声明无法更改
 
+```rust
+// 声明一个Tuple
+let tup: (i32, f64, u8) = (100, 1.0, 64);
+// 1. 下标的方式访问Tuple值
+println!("{}, {}, {}", tup.0, tup.1, tup.2);
+// 2. 解构的方式获取Tuple值
+let (x, y, z) = tup;
+println!("{}, {}, {}", x, y, z);
+```
 
+#### 数组
 
+如果你希望数据存放在stack（栈）而不是heap（堆）上，或者想保证有固定数量的元素，这时使用数组更有好处。
+
+数组没有Vector灵活。Vector的长度可以改变。当你不确定应该使用数组还是Vector时，大概率你应该使用Vector。
+
+- 数组也可以将多个值放在一个类型中
+- 数组中每个元素的类型必须相同
+- 数组的长度也是固定的
+
+数组的类型以这种形式表示：`[type; length]`
+
+例如：`let a: [i32; 5] = [1, 2, 3, 4, 5];`
+
+另一种声明数组的方法：如果数组里的每个元素值都相同，那么可以在中括号中指定一个初始值：`let a = [3; 5];` 它相当于：`let a = [3, 3, 3, 3, 3];`
+
+```rust
+let a = [1, 2, 3, 4, 5];
+let months = ["January", "February", "March", "April", "May", "June", "July",
+              "August", "September", "October", "November", "December"];
+
+// 通过下标访问数组中的数据
+let first = months[0];
+let second = months[1];
+```
+
+如果访问的索引超出了数组的范围，那么：
+
+- 编译会通过（并不绝对）
+- 运行会报错（runtime时会panic）
+    - rust不会允许其继续访问相应的内存地址
 
