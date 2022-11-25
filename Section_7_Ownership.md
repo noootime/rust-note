@@ -1,4 +1,4 @@
-# Ownership - 所有权
+# Section 7. Ownership - 所有权
 
 所有权是rust最独特的特性，它让rust无需GC就可以保证内存安全
 
@@ -123,8 +123,17 @@ let s1 = String::from("hello");
 let s2 = s1;
 ```
 
-具体分析一下`String`的例子
+### 具体分析
 
-[1]
+#### String的基本内存结构
 
-[1]: images/trpl04-01.svg
+<img src="images/trpl04-01.svg" width=30% height=30% style="float: right;">
+
+- 一个`String`由3部分组成：
+    - 一个指向存放字符串内容的内存的指针
+    - 一个长度
+    - 一个容量
+- 上面这些东西都存放在stack上
+- 存放字符串内容的部分在heap上
+- 长度`len`，就是存放字符串内容所需的字节数
+
