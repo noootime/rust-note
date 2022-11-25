@@ -127,7 +127,7 @@ let s2 = s1;
 
 #### String的基本内存结构
 
-<img src="images/trpl04-01.svg" width=30% height=30% style="float: right;">
+<img src="images/trpl04-01.svg" width=30% height=30%>
 
 - 一个`String`由3部分组成：
     - 一个指向存放字符串内容的内存的指针
@@ -136,4 +136,146 @@ let s2 = s1;
 - 上面这些东西都存放在stack上
 - 存放字符串内容的部分在heap上
 - 长度`len`，就是存放字符串内容所需的字节数
+- 容量`capacity`是指`String`从操作系统总共获得内存的总字节数
 
+#### 假想的处理方式
+
+<img src="images/trpl04-02.svg" width=30% height=30%>
+
+当把`s1`赋给`s2`，`String`的数据被复制了一份，这会在`stack`上复制了一份指针、长度、容量完全一样的数据，但是它并没有复制指针所指向的heap上的数据。
+
+当变量离开作用域时，rust会自动调用`drop`函数，并将变量使用的heap内存释放。
+
+当`s1`, `s2`离开作用域时，它们都会尝试释放相同的内存，这就会引发**二次释放（double free）**的bug。
+
+#### rust的处理方式
+
+<img src="images/trpl04-04.svg" width=30% height=30%>
+
+为了保证内存安全：
+
+- rust不会尝试复制被分配的内存
+- rust会让`s1`失效，当`s1`离开作用域时，`rust`不需要释放任何东西
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    let s2 = s1;
+    println!("{}", s1);  // 这里会编译报错 -> borrow of moved value: `s1`
+}
+```
+
+编程语言中都有*浅拷贝（shallow copy）*和*深拷贝（deep copy）*的概念，你也许会将复制指针、长度、容量视为浅拷贝，但由于rust让`s1`失效了，所以我们使用一个新的属于：**移动（Move）**。
+
+隐含的一个设计原则是：rust不会自动创建数据的深拷贝。就运行时性能而言，任何自动复制的操作都是廉价的。
+
+### 变量和数据交互的方式：克隆（Clone）
+
+如果真的想对heap上的`String`数据进行深度拷贝，而不仅仅是stack上的数据，可以使用`clone`方法。
+
+<img src="images/trpl04-03.svg" width=30% height=30%>
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    let s2 = s1.clone();
+    println!("{}, {}", s1, s2);  // s1和s2都是有效的
+}
+```
+
+### Stack上的数据：复制
+
+下边的代码，可以发现执行了`let y = x;`后，`x`还是有效的，这是因为`x`是`i32`标量类型，这种类型在编译时已经确定了大小和值，直接存储在stack上，所以可以直接复制给变量`y`
+
+```rust
+fn main() {
+    let x = 5;
+    let y = x;
+    println!("{}, {}", x, y);  // x, y都是5
+}
+```
+
+`Copy`这个trait可以用于像整数这样完全存放在stack上的类型。
+
+- 如果一个类型实现了`Copy`这个trait，那么旧的变量在赋值后仍然可以使用
+- 如果一个类型或者该类型的一部分实现了`Drop`这个trait，那么rust不允许让它再去实现`Copy` trait了
+
+一些拥有`Copy` trait的类型：
+
+- 任何简单标量的组合类型都可以是`Copy`的
+- 任何需要分配内存或某种资源的都不吃`Copy`的
+- 一些拥有`Copy` trait的类型：
+    - 所有整数类型，例如`u32`
+    - `bool`类型
+    - `char`类型
+    - 所有浮点类型，例如`f64`
+    - `Tuple` 元祖，如果其所有的字段都是`Copy`的，那么它就是`Copy`的
+        - `(i32, i32)` -> 是
+        - `(i32, String)` -> 不是
+
+## 所有权与函数
+
+在语义上，将值传递给函数和吧值赋给变量是类似的：将值传递给函数将发生**移动**或**复制**。
+
+```rust
+fn main() {
+    let s = String::from("hello");
+    take_ownership(s);  // s所有权被移动到makes_copy函数中
+    let x = 5;
+    makes_copy(x);  // x是i32类型，实现了Copy trait，实际传递的是复制，所以x还是有效的
+    println!("x: {}", x);
+}
+
+fn take_owner_ship(some_string: String) {
+    println!("{}", some_string);
+}  // 函数结束后，some_number离开作用域，就失效了
+
+fn makes_copy(some_number: i32) {
+    println!("{}", some_number);
+}
+
+```
+
+### 返回值与作用域
+
+函数在返回值的过程中同样也会发生所有权的转移。
+
+```rust
+fn main() {
+    let s1 = gives_ownership();
+    let s2 = String::from("hello");
+    let s3 = takes_and_gives_back(s2);
+}
+
+fn gives_ownership() {
+    let some_string = String::from("hello");
+    some_string
+}
+
+fn takes_and_gives_back(a_string: String) -> String {
+    a_string
+}
+```
+
+一个变量的所有权总是遵循相同的模式：
+- 把一个值赋给其它变量时就会发生移动
+- 当一个包含heap数据的变量离开作用域时，它的值就会被`drop`函数清理，除非数据的所有权移动到另一个变量上的
+
+**如何让函数使用某个值，但是不获得其所有权？**
+
+针对这个问题，下面是一个笨方法：
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    let (s2, len) = calculate_length(s1);
+    println!("The length of '{}' is {}.", s2, len);
+}
+
+fn calculate_length(s: String) -> (String, usize) {
+    let length = s.len();
+    (s, length)
+}
+```
+
+实际上rust中有一个特性叫做**引用（reference）**，这会在下一节介绍。
